@@ -21,8 +21,8 @@ def comma_print(value, integer=False):
     except: 
         return None
 
-MASTER_ACCESS_KEY = ''
-MASTER_SECRET = '' 
+MASTER_ACCESS_KEY = st.secrets['MASTER_ACCESS_KEY']
+MASTER_SECRET = st.secrets['MASTER_SECRET']
 
 
 @st.cache(show_spinner=False)
