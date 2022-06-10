@@ -142,7 +142,7 @@ if search_button:
             if not pd.isnull(rev_pred): 
                 st.write(f"Predicted revenue per sq. foot: **${round(rev_pred, 2)}**")
                 
-                POP_MEDIAN = preds['mean_rev_fit'].median() 
+                # POP_MEDIAN = preds['mean_rev_fit'].median() 
                 
                 fig, ax = plt.subplots(figsize=(5,3)) 
                 # the histogram of the data 
@@ -152,10 +152,13 @@ if search_button:
             
                 ax.axvline(rev_pred, ls='dashdot', c='r', 
                            label=f'predicted rev / sq foot = ${round(rev_pred, 2)}') 
-                ax.axvline(POP_MEDIAN, ls='dashdot', c='#9ea832', 
-                           label=f'population median = ${round(POP_MEDIAN, 2)}')
+#                ax.axvline(POP_MEDIAN, ls='dashdot', c='#9ea832', 
+#                           label=f'population median = ${round(POP_MEDIAN, 2)}')
                 ax.set_xlim(4.85, 21)  
-                ax.legend(loc='upper right', fontsize='x-small')
+                ax.legend(loc='upper right', fontsize='x-small') 
+                ax.tick_params(axis='both', which='both', labelsize=6,
+                   bottom=False, top=False, labelbottom=True,
+                   left=False, right=False, labelleft=True)
                 st.pyplot(fig)
 
         with st.expander("Bad Debt"): 
@@ -164,7 +167,7 @@ if search_button:
             if not pd.isnull(bd_pred): 
                 st.write(f"Predicted bad debt pct: **{round(bd_pred * 100, 2)}%**")
                 
-                POP_MEDIAN = preds['bdebt_fit'].median() 
+                # POP_MEDIAN = preds['bdebt_fit'].median() 
                 
                 fig, ax = plt.subplots(figsize=(5,3)) 
                 # the histogram of the data 
@@ -174,10 +177,13 @@ if search_button:
             
                 ax.axvline(bd_pred, ls='dashdot', c='r', 
                            label=f'predicted bad debt % = {round(bd_pred * 100, 2)}%') 
-                ax.axvline(POP_MEDIAN, ls='dashdot', c='#9ea832', 
-                           label=f'population median = {round(POP_MEDIAN * 100, 2)}%')
+#                ax.axvline(POP_MEDIAN, ls='dashdot', c='#9ea832', 
+#                           label=f'population median = {round(POP_MEDIAN * 100, 2)}%')
                 #ax.set_xlim(4.85, 21)  
-                ax.legend(loc='upper right', fontsize='x-small')
+                ax.legend(loc='upper right', fontsize='x-small') 
+                ax.tick_params(axis='both', which='both', labelsize=6,
+                   bottom=False, top=False, labelbottom=True,
+                   left=False, right=False, labelleft=True)
                 st.pyplot(fig)
 
 
