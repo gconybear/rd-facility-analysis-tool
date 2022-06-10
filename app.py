@@ -1,0 +1,384 @@
+import streamlit as st 
+import pandas as pd 
+import numpy as np   
+import folium
+from folium import Marker
+from folium.plugins import MarkerCluster 
+import matplotlib.pyplot as plt
+
+import data_grabber  
+import geomapping
+from geocode import extract_lat_long_via_address 
+import helpers
+
+def blank(): return st.text('')  
+
+def comma_print(value, integer=False): 
+    try:
+        if integer: 
+            return '{:,}'.format(int(value))     
+        return '{:,}'.format(value)  
+    except: 
+        return None
+
+MASTER_ACCESS_KEY = ''
+MASTER_SECRET = '' 
+
+
+@st.cache(show_spinner=False)
+def grab_data():  
+    # print('function run')
+    return data_grabber.grab(MASTER_ACCESS_KEY, MASTER_SECRET) 
+
+dat = grab_data() 
+gen = dat['general'] 
+geo = dat['geo']
+clusters = dat['clusters']  
+preds = dat['preds'] 
+gdp = dat['gdp']
+metro = dat['metro']
+#comp_full = dat['comp_full']
+
+st.header("Facility Analysis Tool") 
+blank()
+with st.form(key='form'): 
+    
+    
+    qtype = st.radio("Location type", ('address', 
+                                       'coordinates'), help="coordinates should be in lat, long format") 
+    
+    query = st.text_input("Location")
+    
+    blank()
+    search_button = st.form_submit_button('search') 
+    
+    
+if search_button: 
+    
+    
+    if qtype == 'address': 
+        coords = extract_lat_long_via_address(query) 
+        coords = tuple(coords.values())  
+
+    else: 
+        coords = tuple([float(x) for x in query.replace(' ','').split(',')])
+        
+    lat, long = coords 
+    
+    closest_store = geomapping.get_closest_store(lat, long, geo) 
+    
+    # --- index rows --- 
+    
+    # cluster
+    crow = clusters[clusters['full_fips'] == closest_store['full_fips']].drop(['full_fips', 'Unnamed: 0'], axis=1).reset_index(drop=True).T.rename(columns={0:'values'}) 
+        
+    # general 
+    gen_row = gen[gen['StoreID'] == closest_store.get('StoreID')]   
+        
+    # predictions 
+    preds_row = preds[preds['store'] == closest_store.get('StoreID')] 
+        
+    # gdp
+    
+    gdp_row = gdp[gdp['county_fips'] == closest_store.get('county_fips')] 
+    
+    if not gen_row.empty: 
+        st.success("Store found!") 
+        blank()
+        
+        # general vals
+        sname = gen_row.loc[:, 'StoreName'].values[0]
+        total_sf = gen_row.loc[:, 'TotalSqft'].values[0]
+        nrsf = gen_row.loc[:, 'RentableSqft'].values[0]
+        owner = gen_row.loc[:, 'OwnerCompanyName'].values[0]  
+        company_type = gen_row.loc[:, 'CompanyType'].values[0] 
+        
+        # prediction vals 
+        rev_pred = preds_row.loc[:, 'mean_rev_fit'].values[0] 
+        bd_pred = preds_row.loc[:, 'bdebt_fit'].values[0]  
+        nrsf_1_mile = preds_row.loc[:, 'nrsf_1mi_delta'].values[0]
+        nrsf_3_mile = preds_row.loc[:, 'nrsf_3mi_delta'].values[0]
+        nrsf_5_mile = preds_row.loc[:, 'nrsf_5mi_delta'].values[0] 
+        nrsf_10_mile = preds_row.loc[:, 'nrsf_10mi_delta'].values[0]
+    
+
+    #    comp_data = comp_full[closest_store['StoreID']].get('comps')
+    #    kd_data = comp_full[closest_store['StoreID']].get('developments')
+
+        # --- outputs ---- 
+
+        st.write("**Cluster Predictions**") 
+
+        st.write(f"Address mapped to: **{sname}** (**{closest_store['distance']}** miles away)")   
+
+        for row in crow.index: 
+            if row == 'cluster': 
+                crow.loc[row, :] = crow.loc[row, :].apply(lambda x: str(int(x))) 
+            else: 
+                crow.loc[row, :] = crow.loc[row, :].apply(lambda x: str(x)) 
+
+        st.dataframe(crow) 
+
+        blank()  
+        
+        st.write("**Facility Info**")  
+        
+        with st.expander("Info"):
+        
+            st.markdown(f"$\Rightarrow$ Name: **{sname}**", unsafe_allow_html=True)
+            st.markdown(f"$\Rightarrow$ Owner: **{owner}**", unsafe_allow_html=True) 
+            st.markdown(f"$\Rightarrow$ Company Type: **{company_type}**", unsafe_allow_html=True)
+            st.markdown(f"$\Rightarrow$ Total Sq. Footage: **{comma_print(total_sf)}**", unsafe_allow_html=True)
+            st.markdown(f"$\Rightarrow$ Rentable Sq. Footage: **{comma_print(nrsf)}**", unsafe_allow_html=True)
+
+        
+        blank()
+
+        st.write("**Other Predictions**")  
+
+        with st.expander("Revenue"):  
+            blank() 
+            
+            if not pd.isnull(rev_pred): 
+                st.write(f"Predicted revenue per sq. foot: **${round(rev_pred, 2)}**")
+                
+                POP_MEDIAN = preds['mean_rev_fit'].median() 
+                
+                fig, ax = plt.subplots(figsize=(5,3)) 
+                # the histogram of the data 
+                num_bins = 100
+                n, bins, patches = ax.hist(preds['mean_rev_fit'], 
+                                           num_bins, density=True, alpha=.2) 
+            
+                ax.axvline(rev_pred, ls='dashdot', c='r', 
+                           label=f'predicted rev / sq foot = ${round(rev_pred, 2)}') 
+                ax.axvline(POP_MEDIAN, ls='dashdot', c='#9ea832', 
+                           label=f'population median = ${round(POP_MEDIAN, 2)}')
+                ax.set_xlim(4.85, 21)  
+                ax.legend(loc='upper right', fontsize='x-small')
+                st.pyplot(fig)
+
+        with st.expander("Bad Debt"): 
+            blank() 
+            
+            if not pd.isnull(bd_pred): 
+                st.write(f"Predicted bad debt pct: **{round(bd_pred * 100, 2)}%**")
+                
+                POP_MEDIAN = preds['bdebt_fit'].median() 
+                
+                fig, ax = plt.subplots(figsize=(5,3)) 
+                # the histogram of the data 
+                num_bins = 100
+                n, bins, patches = ax.hist(preds['bdebt_fit'], 
+                                           num_bins, density=True, alpha=.2) 
+            
+                ax.axvline(bd_pred, ls='dashdot', c='r', 
+                           label=f'predicted bad debt % = {round(bd_pred * 100, 2)}%') 
+                ax.axvline(POP_MEDIAN, ls='dashdot', c='#9ea832', 
+                           label=f'population median = {round(POP_MEDIAN * 100, 2)}%')
+                #ax.set_xlim(4.85, 21)  
+                ax.legend(loc='upper right', fontsize='x-small')
+                st.pyplot(fig)
+
+
+        with st.expander("Supply"): 
+            st.write('')  
+            
+            one_mi_over = nrsf_1_mile > 0
+            three_mi_over = nrsf_3_mile > 0 
+            five_mi_over = nrsf_5_mile > 0 
+            ten_mi_over = nrsf_10_mile > 0  
+            
+            st.write(f"""This location is **{'over' if one_mi_over else 'under'}** supplied 
+            in a 1 mile radius, **{'over' if three_mi_over else 'under'}** supplied in a 3 mile radius, 
+            **{'over' if five_mi_over else 'under'}** supplied in a 5 mile radius, and
+            **{'over' if ten_mi_over else 'under'}** supplied in a 10 mile radius""")
+
+
+        blank()  
+        
+        st.write("**Market Analytics**")   
+        
+        with st.expander("Housing & Economic Trends"): 
+            
+            st.write('Realtor.com Trends') 
+            
+            blank() 
+            
+            st.markdown("<u>Median Home Values</u>", unsafe_allow_html=True)
+            
+            state_fips = geo[geo['state'] == geo[geo['full_fips'] == closest_store.get('full_fips')]['state'].values[0]]['full_fips'].tolist()
+            
+            fig, ax = plt.subplots(figsize=(5,2)) 
+
+            arr = metro[metro['full_fips'] == closest_store.get('full_fips')][helpers.MHV_COLS]  
+            avg = metro[helpers.MHV_COLS].mean().values 
+            state_avg = metro[metro['full_fips'].isin(state_fips)][helpers.MHV_COLS].mean().values
+            x, y = [helpers.parse_col_name(i) for i in list(arr.columns)], arr.values[0]
+
+            ax.plot(x, y, c='r', label='metro avg')
+            ax.plot(x, avg, ls=':', label='national avg')  
+            ax.plot(x, state_avg, ls=':', label='state avg')   
+            
+            ax.grid(True, 'major', 'y', ls='--', lw=.5, c='k', alpha=.3) 
+            ax.tick_params(axis='both', which='both', labelsize=6,
+               bottom=False, top=False, labelbottom=True,
+               left=False, right=False, labelleft=True)
+
+            
+            ax.set_xticklabels(x, rotation=0) 
+            ax.legend(loc='upper left', prop={'size': 6})
+            
+            for i,tick in enumerate(ax.xaxis.get_ticklabels()): 
+                if i % 13 == 0:  
+                    tick.set_visible(True) 
+                else: 
+                    tick.set_visible(False) 
+            
+            st.pyplot(fig)  
+            
+            blank()
+            
+            st.markdown("<u>GDP Time Series</u>", unsafe_allow_html=True)
+            
+            gdp_chart_data = (
+                gdp_row[['gdp_17', 'gdp_18', 'gdp_19', 'gdp_20']]
+                .rename(columns={
+                    'gdp_17': '2017', 
+                    'gdp_18': '2018', 
+                    'gdp_19': '2019', 
+                    'gdp_20': '2020'
+                })
+                .T 
+                .rename(columns={gdp_row.index[0] : 'GDP ($)'})
+
+            ) 
+            fig, ax = plt.subplots(figsize=(5,2))
+            ax.plot(gdp_chart_data.index, gdp_chart_data['GDP ($)'], 
+                    ls=':', marker='X', c='green', label='GDP ($)')   
+            
+            ax.grid(True, 'major', 'y', ls='--', lw=.5, c='k', alpha=.3) 
+            ax.legend(loc='upper left', prop={'size': 6})
+            ax.tick_params(axis='both', which='both', labelsize=6,
+               bottom=False, top=False, labelbottom=True,
+               left=False, right=False, labelleft=True)
+            st.pyplot(fig)
+
+            st.markdown("<u>GDP per capita (county level) </u>", unsafe_allow_html=True) 
+            
+            gdp_percap = gdp_row['gdp_per_cap_20'].values[0] 
+            GDP_AVG = 37.34
+            pct_diff = round((1 - (GDP_AVG / gdp_percap)) * 100, 2) 
+            delta = 'higher' if pct_diff > 0 else 'lower' 
+            
+            st.write(f"GDP per capita in this county is **{round(gdp_percap, 2)}**, which is **{pct_diff}% {delta}** than the national average")
+            
+            
+            'average rent' 
+            
+            'income to rent'
+            
+            'per capita income'  
+            
+            
+        with st.expander("Search Demand"): 
+            st.write('Coming soon')
+            
+        with st.expander("Key Demographics"): 
+            
+            "display stats on main demographic drivers"
+            
+            "population"
+            
+            "crime" 
+            
+            "income"
+         
+        with st.expander("Taxes & Assessments"): 
+            
+            st.write('') 
+            
+        
+        blank()
+
+        st.write("**Competitor Map**")
+
+
+
+
+        blank() 
+        
+        DASH = 8
+        OPACITY = 0.5
+        COLOR = 'darkgreen'
+
+        
+        lat, long = closest_store['coords']
+        m = folium.Map([lat, long], zoom_start=11)   
+
+         
+        folium.Circle(location=[lat, long], radius=1610, color=COLOR,
+                      popup='1 mile radius', opacity=OPACITY, dash_array=DASH).add_to(m) 
+        folium.Circle(location=[lat, long], radius=1610*3, color=COLOR,
+                      popup='3 mile radius', opacity=OPACITY, dash_array=DASH).add_to(m) 
+        folium.Circle(location=[lat, long], radius=1610*5, color=COLOR,
+                      popup='5 mile radius', opacity=OPACITY, dash_array=DASH).add_to(m)
+        folium.Circle(location=[lat, long], radius=1610*10, color=COLOR,
+                      popup='10 mile radius', opacity=OPACITY, dash_array=DASH).add_to(m) 
+        
+        folium.LayerControl().add_to(m) 
+        
+        dists = geomapping.haversine_np(lat, long, geo['lat'].values, geo['long'].values) 
+
+        comp_df = pd.merge(geo.loc[np.where(dists < 10)[0], :][['StoreID', 'lat', 'long']], gen)
+
+
+        for sname, addy, sf, ctype, lt, lng in comp_df[['StoreName', 'full_address', 
+                                                        'RentableSqft', 'CompanyType',
+                                                 'lat', 'long']].values:   
+#            html = f""" 
+#                    <h4>New Development</h4>\n
+#                    <b>Name:</b> {kd_dict[s]['StoreName']}<br>
+#                    <b>Acres:</b> {kd_dict[s]['propertyAcres']}<br>
+#                    <b>Est. NRSF:</b> {kd_dict[s]['EstimatedRentableSquareFootage']}<br> 
+#                    <b>Num. Buildings:</b> {kd_dict[s]['propertyNumberOfBuildings']}<br> 
+#                    <b>Num. Floors:</b> {kd_dict[s]['propertyFloors']}<br>
+#                    <b>Development stage:</b> {kd_dict[s]['propertyStage']}<br> 
+#                    <b>Development type:</b> {kd_dict[s]['propertyProjectType']}<br>  
+#                    <b>Est. Opening Date:</b> {kd_dict[s]['propertyExpectedToOpen']}<br> 
+#                    """ 
+#            iframe = folium.IFrame(html=html, width=250, height=100)
+#            popup = folium.Popup(iframe, max_width=1000)
+            
+            html = f"""
+            <b>{sname}</b> <br> 
+            ------------ <br> 
+            {ctype} <br> 
+            ------------ <br> 
+            {addy} <br>  
+            ------------ <br>
+            {comma_print(sf)} rentable sq. ft
+            """ 
+            iframe = folium.IFrame(html=html, width=200, height=150)
+            popup = folium.Popup(iframe, max_width=1000)
+            folium.Marker(location=[lt, lng],  popup=popup, icon=folium.Icon()).add_to(m) 
+            
+        folium.Marker(location=[lat, long], draggable=False,
+                    popup="""<b>{}</b><br> ---- <br> NRSF: {} """.format(sname, comma_print(nrsf)),
+                                  icon=folium.Icon(color='red')).add_to(m)  
+
+        st.markdown(m._repr_html_(), unsafe_allow_html=True)  
+        
+        blank() 
+        blank()
+        
+        st.download_button("Download full report", '')
+        
+    else: 
+        st.warning("""
+        We don't currently have data on this facility's neighborhood... 
+        
+        Instead, mapping to the closest location data is available for
+        """)
+        
+        # TODO --> process to find cloest tract 
