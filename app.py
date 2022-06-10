@@ -333,7 +333,7 @@ if search_button:
         comp_df = pd.merge(geo.loc[np.where(dists < 10)[0], :][['StoreID', 'lat', 'long']], gen)
 
 
-        for sname, addy, sf, ctype, lt, lng in comp_df[['StoreName', 'full_address', 
+        for store_name, addy, sf, ctype, lt, lng in comp_df[['StoreName', 'full_address', 
                                                         'RentableSqft', 'CompanyType',
                                                  'lat', 'long']].values:   
 #            html = f""" 
@@ -351,7 +351,7 @@ if search_button:
 #            popup = folium.Popup(iframe, max_width=1000)
             
             html = f"""
-            <b>{sname}</b> <br> 
+            <b>{store_name}</b> <br> 
             ------------ <br> 
             {ctype} <br> 
             ------------ <br> 
