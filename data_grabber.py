@@ -3,7 +3,9 @@ import json
 from io import StringIO 
 import pandas as pd    
 import os 
-import pickle 
+import pickle  
+from scipy import stats 
+
 
 
 def grab(MASTER_ACCESS_KEY, MASTER_SECRET):  
@@ -29,10 +31,27 @@ def grab(MASTER_ACCESS_KEY, MASTER_SECRET):
     # clusters['cluster'] = clusters['cluster'].astype(str)  
     
     gdp = s3.get_object(Bucket='acq-data-warehouse', Key=f'data_lake/other/gdp_counties.csv')['Body'].read().decode('utf-8')   
-    gdp = pd.read_csv(StringIO(gdp))   
+    gdp = pd.read_csv(StringIO(gdp))    
+    gdp['per_cap_percentile'] = stats.rankdata(gdp['gdp_per_cap_20'], 'average') / gdp.shape[0]
     
     metro = s3.get_object(Bucket='acq-data-warehouse', Key=f'data_lake/ns/metro.csv')['Body'].read().decode('utf-8')   
-    metro = pd.read_csv(StringIO(metro)) 
+    metro = pd.read_csv(StringIO(metro))  
+    
+    local_rent = s3.get_object(Bucket='acq-data-warehouse', Key=f'data_lake/other/rent_prices.csv')['Body'].read().decode('utf-8')   
+    local_rent = pd.read_csv(StringIO(local_rent))  
+    
+    rev_shap = s3.get_object(Bucket='acq-data-warehouse', Key=f'data_lake/predictions/shapley/revenue/rev_shapley.csv')['Body'].read().decode('utf-8')   
+    rev_shap = pd.read_csv(StringIO(rev_shap)) 
+    
+    bd_shap = s3.get_object(Bucket='acq-data-warehouse', Key=f'data_lake/predictions/shapley/bad_debt/bad_debt_shapley.csv')['Body'].read().decode('utf-8')   
+    bd_shap = pd.read_csv(StringIO(bd_shap)) 
+    
+    rev_test = s3.get_object(Bucket='acq-data-warehouse', Key=f'data_lake/predictions/shapley/revenue/rev_training.csv')['Body'].read().decode('utf-8')   
+    rev_test = pd.read_csv(StringIO(rev_test)) 
+    
+    bd_test = s3.get_object(Bucket='acq-data-warehouse', Key=f'data_lake/predictions/shapley/bad_debt/bad_debt_training.csv')['Body'].read().decode('utf-8')   
+    bd_test = pd.read_csv(StringIO(bd_test))
+    
     
     # comp_dict = pickle.loads(s3.get_object(Bucket='acq-data-warehouse', Key='data_lake/other/comps_comps.pkl')['Body'].read()) 
     
@@ -42,7 +61,12 @@ def grab(MASTER_ACCESS_KEY, MASTER_SECRET):
         'clusters': clusters, 
         'preds': preds, 
         'gdp': gdp, 
-        'metro': metro, 
+        'metro': metro,  
+        'local_rent': local_rent,  
+        'rev_shap': rev_shap,  
+        'bd_shap': bd_shap,  
+        'rev_test': rev_test, 
+        'bd_test': bd_test, 
         'comp_full': None
     }
     

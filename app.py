@@ -36,7 +36,12 @@ geo = dat['geo']
 clusters = dat['clusters']  
 preds = dat['preds'] 
 gdp = dat['gdp']
-metro = dat['metro']
+metro = dat['metro'] 
+local_rent = dat['local_rent'] 
+rev_shap = dat['rev_shap'] 
+bd_shap = dat['bd_shap'] 
+rev_test = dat['rev_test'] 
+bd_test = dat['bd_test']
 #comp_full = dat['comp_full']
 
 st.header("Facility Analysis Tool") 
@@ -134,17 +139,21 @@ if search_button:
         
         blank()
 
-        st.write("**Other Predictions**")  
+        st.write("**Model Predictions**")  
 
         with st.expander("Revenue"):  
             blank() 
             
-            if not pd.isnull(rev_pred): 
+            if not pd.isnull(rev_pred):  
+                
+                st.markdown("<u>Model Output</u>", unsafe_allow_html=True)  
+                
+                
                 st.write(f"Predicted revenue per sq. foot: **${round(rev_pred, 2)}**")
                 
-                # POP_MEDIAN = preds['mean_rev_fit'].median() 
-                
-                fig, ax = plt.subplots(figsize=(5,3)) 
+                # POP_MEDIAN = preds['mean_rev_fit'].median()  
+    
+                fig, ax = plt.subplots(figsize=(6,3)) 
                 # the histogram of the data 
                 num_bins = 100
                 n, bins, patches = ax.hist(preds['mean_rev_fit'], 
@@ -159,12 +168,61 @@ if search_button:
                 ax.tick_params(axis='both', which='both', labelsize=6,
                    bottom=False, top=False, labelbottom=True,
                    left=False, right=False, labelleft=True)
-                st.pyplot(fig)
+                st.pyplot(fig) 
+                
+                blank()  
+                
+                st.markdown("<u>Model Intepretation</u>", unsafe_allow_html=True) 
+                
+                rev_shap_row = (
+                    rev_shap[rev_shap['store'] == closest_store.get('StoreID')]
+                    .drop(['store', 'full_fips', 'Unnamed: 0'], axis=1)
+                    .squeeze().sort_values(key=lambda x: abs(x), ascending=True)
+                ) 
+                
+                fig, ax = plt.subplots(figsize=(6,3)) 
+                xlabels = [helpers.rev_model_col_dict[x]['nice'] for x in rev_shap_row.index.tolist()] 
+
+                ax.barh(y=xlabels, 
+                       width=rev_shap_row.values, alpha=.3)  
+
+                ax.set_xlabel('Effect on Prediction') 
+                ax.grid(True, 'major', 'x', ls='--', lw=.5, c='k', alpha=.3) 
+                
+                st.pyplot(fig) 
+                
+                N = 5
+                influential_features = rev_shap_row.sort_values(key=lambda x: abs(x), ascending=False)[:N]
+                fnames, fshaps = influential_features.index.tolist(), influential_features.values.tolist()  
+                
+                blank() 
+                
+                shap_string = '\n <br>'.join([f"$\Rightarrow$ **{helpers.rev_model_col_dict[f]['nice']}** drove the prediction **{'down' if v < 0 else 'up'}** <br>" for f,v in zip(fnames, fshaps)]) 
+                
+                st.write('*Directional Effects*')
+                st.markdown(shap_string, unsafe_allow_html=True) 
+                
+                blank()  
+                blank() 
+                
+                st.write('*Variable Interpretation*')
+                
+                rev_test_row = rev_test[rev_test['store'] == closest_store.get('StoreID')] 
+                
+                for f in fnames:  
+                    f_feature = f.replace('_rev_shap', '')
+                    val, z, p = helpers.compare_feature(f_feature, rev_test_row) 
+                    #st.write(f"{f_feature} | {val} | {z} | {p}") 
+                    
+                    st.markdown(f"$\Rightarrow$ **{helpers.rev_model_col_dict[f]['nice']}** has a value of **{val}**, a z-score of **{z}**, and in the **{p}{helpers.suffix(p)}** percentile")
 
         with st.expander("Bad Debt"): 
             blank() 
             
-            if not pd.isnull(bd_pred): 
+            if not pd.isnull(bd_pred):  
+                
+                st.markdown("<u>Model Output</u>", unsafe_allow_html=True)  
+                
                 st.write(f"Predicted bad debt pct: **{round(bd_pred * 100, 2)}%**")
                 
                 # POP_MEDIAN = preds['bdebt_fit'].median() 
@@ -184,8 +242,55 @@ if search_button:
                 ax.tick_params(axis='both', which='both', labelsize=6,
                    bottom=False, top=False, labelbottom=True,
                    left=False, right=False, labelleft=True)
-                st.pyplot(fig)
+                st.pyplot(fig) 
+                
+                blank()  
+                
+                st.markdown("<u>Model Intepretation</u>", unsafe_allow_html=True) 
+                
+                bd_shap_row = (
+                    bd_shap[bd_shap['store'] == closest_store.get('StoreID')]
+                    .drop(['store', 'full_fips', 'Unnamed: 0'], axis=1)
+                    .squeeze().sort_values(key=lambda x: abs(x), ascending=True)
+                ) 
+                 
+                
+                fig, ax = plt.subplots(figsize=(6,4)) 
+                xlabels = [helpers.bd_model_col_dict[x]['nice'] for x in bd_shap_row.index.tolist()] 
 
+                ax.barh(y=xlabels, 
+                       width=bd_shap_row.values, alpha=.3)  
+
+                ax.set_xlabel('Effect on Prediction') 
+                ax.grid(True, 'major', 'x', ls='--', lw=.5, c='k', alpha=.3) 
+                
+                st.pyplot(fig) 
+                
+                N = 5
+                influential_features = bd_shap_row.sort_values(key=lambda x: abs(x), ascending=False)[:N]
+                fnames, fshaps = influential_features.index.tolist(), influential_features.values.tolist()  
+                
+                blank() 
+                
+                shap_string = '\n <br>'.join([f"$\Rightarrow$ **{helpers.bd_model_col_dict[f]['nice']}** drove the prediction **{'down' if v < 0 else 'up'}** <br>" for f,v in zip(fnames, fshaps)]) 
+                
+                st.write('*Directional Effects*')
+                st.markdown(shap_string, unsafe_allow_html=True)
+                
+                blank() 
+                blank()  
+                
+                st.write('*Variable Interpretation*')
+                
+                bd_test_row = bd_test[bd_test['store'] == closest_store.get('StoreID')] 
+                 
+                
+                for f in fnames:  
+                    f_feature = f.replace('_bd_shap', '')
+                    val, z, p = helpers.compare_feature(f_feature, bd_test_row) 
+                    #st.write(f"{f_feature} | {val} | {z} | {p}") 
+                    
+                    st.markdown(f"$\Rightarrow$ **{helpers.bd_model_col_dict[f]['nice']}** has a value of **{val}**, a z-score of **{z}**, and in the **{p}{helpers.suffix(p)}** percentile")
 
         with st.expander("Supply"): 
             st.write('')  
@@ -206,12 +311,16 @@ if search_button:
         st.write("**Market Analytics**")   
         
         with st.expander("Housing & Economic Trends"): 
-            
-            st.write('Realtor.com Trends') 
+             
+            st.markdown("<u>Housing Demand & Supply</u>", unsafe_allow_html=True) 
+            st.caption("Source: realtor.com") 
+            st.caption("Geography level: Zip Code")
             
             blank() 
             
-            st.markdown("<u>Median Home Values</u>", unsafe_allow_html=True)
+            st.markdown("<u>Median Home Values</u>", unsafe_allow_html=True) 
+            st.caption("Source: NeighborhoodScout") 
+            st.caption("Geography level: Metro area")
             
             state_fips = geo[geo['state'] == geo[geo['full_fips'] == closest_store.get('full_fips')]['state'].values[0]]['full_fips'].tolist()
             
@@ -245,7 +354,11 @@ if search_button:
             
             blank()
             
-            st.markdown("<u>GDP Time Series</u>", unsafe_allow_html=True)
+            st.markdown("<u>GDP</u>", unsafe_allow_html=True) 
+            st.caption("Source: U.S. Bureau of Economic Analysis") 
+            st.caption("Geography level: County") 
+            
+            st.write("*Time Series*")
             
             gdp_chart_data = (
                 gdp_row[['gdp_17', 'gdp_18', 'gdp_19', 'gdp_20']]
@@ -270,14 +383,43 @@ if search_button:
                left=False, right=False, labelleft=True)
             st.pyplot(fig)
 
-            st.markdown("<u>GDP per capita (county level) </u>", unsafe_allow_html=True) 
             
             gdp_percap = gdp_row['gdp_per_cap_20'].values[0] 
-            GDP_AVG = 37.34
-            pct_diff = round((1 - (GDP_AVG / gdp_percap)) * 100, 2) 
-            delta = 'higher' if pct_diff > 0 else 'lower' 
+            gdp_percentile = gdp_row['per_cap_percentile'].values[0] 
+            gdp_percentile = round(gdp_percentile*100) 
+#            GDP_AVG = 37.34
+#            pct_diff = round((1 - (GDP_AVG / gdp_percap)) * 100, 2) 
+#            delta = 'higher' if pct_diff > 0 else 'lower'  
+
+            st.write("*Per Capita*")
             
-            st.write(f"GDP per capita in this county is **{round(gdp_percap, 2)}**, which is **{pct_diff}% {delta}** than the national average")
+            st.write(f"GDP per capita in this county is $**{round(gdp_percap, 2)}**, which is in the **{gdp_percentile}**{helpers.suffix(gdp_percentile)} percentile nationally")
+            
+            blank() 
+            
+            st.markdown("<u>Neighborhood Rent Prices </u>", unsafe_allow_html=True)   
+            st.caption("Source: NeighborhoodScout") 
+            st.caption("Geography level: Neighborhood (Census Tract)")
+            
+            rent_row = local_rent[local_rent['full_fips'] == closest_store.get('full_fips')] 
+            #rent_row 
+            
+            _, col1, col2, col3, col4, _ = st.columns(6)
+            col1.metric("Median Rent", "$1.2K", "")
+            col2.metric("1 Bedroom Rent", "$1.5K", '')
+            col3.metric("2 Bedroom Rent", "$1.8K", '') 
+            col4.metric("3 Bedroom Rent", "$2.1K", '') 
+            
+            blank() 
+            
+            _, _, col1, col2, _, _ = st.columns(6) 
+            col1.metric("Gross Rent Yield", "4.25%") 
+            col2.metric("Rent Change", "5.2%", '')
+            
+            
+            blank() 
+            
+            st.markdown("<u>Neighborhood Rent Prices </u>", unsafe_allow_html=True) 
             
             
             'average rent' 

@@ -1,3 +1,20 @@
+import streamlit as st 
+
+def compare_feature(f, row): 
+    
+    val = row[f].values[0] 
+    z = row[f"{f}_zscore"].values[0] 
+    p = row[f"{f}_percentile"].values[0]   
+    
+    p = round(p * 100)
+    
+#    return st.markdown(f"$\Rightarrow$ {col_dict[f]['nice]} has a value of **{round(val, 2)}**, a z-score of **{round(z,2)}** and in the **{p}{suffix(p)}** percentile") 
+    
+    return round(val, 2), round(z, 2), p
+
+def suffix(d):
+    return 'th' if 11<=d<=13 else {1:'st',2:'nd',3:'rd'}.get(d%10, 'th')
+
 def parse_col_name(c): 
     dt = c.split('.')[-1][-6:] 
     
@@ -89,3 +106,68 @@ MHV_COLS = ['metro.real_estate.mhv_obs_2000_1',
  'metro.real_estate.mhv_obs_2020_4',
  'metro.real_estate.mhv_obs_2021_1',
  'metro.real_estate.mhv_obs_2021_2']
+
+rev_model_col_dict = {'store': {'nice': 'store', 'db': 'store'},
+ 'full_fips': {'nice': 'full_fips', 'db': 'full_fips'},
+ 'neighborhood.real_estate.uscls_rent_rev_shap': {'nice': 'rent national class',
+  'db': 'neighborhood.real_estate.uscls_rent'},
+ 'neighborhood.real_estate.grrent_ch_rev_shap': {'nice': 'change in rent price',
+  'db': 'neighborhood.real_estate.grrent_ch'},
+ 'neighborhood.real_estate.his_pct_rev_shap': {'nice': 'historic homes pct',
+  'db': 'neighborhood.real_estate.his_pct'},
+ 'neighborhood.crime.count_violent_rev_shap': {'nice': 'count of violent crimes',
+  'db': 'neighborhood.crime.count_violent'},
+ 'neighborhood.crime.prop_frisk_ratio_rev_shap': {'nice': 'property crime ratio - present vs projected',
+  'db': 'neighborhood.crime.prop_frisk_ratio'},
+ 'neighborhood.demographics.retire_fr_rev_shap': {'nice': 'retirement friendly score',
+  'db': 'neighborhood.demographics.retire_fr'},
+ 'neighborhood.econ_and_empl.ind_manufacturing_pct_rev_shap': {'nice': 'manufacturing industry pct',
+  'db': 'neighborhood.econ_and_empl.ind_manufacturing_pct'},
+ 'neighborhood.econ_and_empl.ind_transportation_pct_rev_shap': {'nice': 'transportation industry pct',
+  'db': 'neighborhood.econ_and_empl.ind_transportation_pct'},
+ 'neighborhood.econ_and_empl.ind_realestate_pct_rev_shap': {'nice': 'real estate industry pct',
+  'db': 'neighborhood.econ_and_empl.ind_realestate_pct'},
+ 'neighborhood.econ_and_empl.commtime60_pct_rev_shap': {'nice': '45-60 min commute time pct',
+  'db': 'neighborhood.econ_and_empl.commtime60_pct'},
+ 'neighborhood.econ_and_empl.carpool_pct_rev_shap': {'nice': 'carpool pct',
+  'db': 'neighborhood.econ_and_empl.carpool_pct'},
+ 'block_group.demographics.pop_est_1mile_rev_shap': {'nice': '1 mile population',
+  'db': 'block_group.demographics.pop_est_1mile'},
+ 'block_group.demographics.pop_ch_25mile_rev_shap': {'nice': '25 mile population change',
+  'db': 'block_group.demographics.pop_ch_25mile'}} 
+
+bd_model_col_dict = {'store': {'nice': 'store', 'db': 'store'},
+ 'full_fips': {'nice': 'full_fips', 'db': 'full_fips'},
+ 'neighborhood.real_estate.grrent_ch_bd_shap': {'nice': 'change in rent price',
+  'db': 'neighborhood.real_estate.grrent_ch'},
+ 'neighborhood.real_estate.own_ch_bd_shap': {'nice': 'change in homeownership rate',
+  'db': 'neighborhood.real_estate.own_ch'},
+ 'neighborhood.real_estate.new_pct_bd_shap': {'nice': 'new homes pct',
+  'db': 'neighborhood.real_estate.new_pct'},
+ 'neighborhood.real_estate.old_pct_bd_shap': {'nice': 'old homes pct',
+  'db': 'neighborhood.real_estate.old_pct'},
+ 'neighborhood.real_estate.his_pct_bd_shap': {'nice': 'historic homes pct',
+  'db': 'neighborhood.real_estate.his_pct'},
+ 'neighborhood.real_estate.att_pct_bd_shap': {'nice': 'row houses pct',
+  'db': 'neighborhood.real_estate.att_pct'},
+ 'neighborhood.demographics.retire_fr_bd_shap': {'nice': 'retirement friendly score',
+  'db': 'neighborhood.demographics.retire_fr'},
+ 'neighborhood.econ_and_empl.ind_wholesale_pct_bd_shap': {'nice': 'wholesale industry pct',
+  'db': 'neighborhood.econ_and_empl.ind_wholesale_pct'},
+ 'neighborhood.econ_and_empl.ind_finance_pct_bd_shap': {'nice': 'finance industry pct',
+  'db': 'neighborhood.econ_and_empl.ind_finance_pct'},
+ 'neighborhood.econ_and_empl.commtime90_pct_bd_shap': {'nice': '90+ min commute pct',
+  'db': 'neighborhood.econ_and_empl.commtime90_pct'},
+ 'block_group.demographics.pop_past_50mile_bd_shap': {'nice': 'population past 50 mile',
+  'db': 'block_group.demographics.pop_past_50mile'},
+ 'block_group.demographics.pop_ch_10mile_bd_shap': {'nice': '10 mile population change',
+  'db': 'block_group.demographics.pop_ch_10mile'},
+ 'block_group.econ_and_empl.jobs_hipay_5min_bd_shap': {'nice': 'high paying jobs < 5 min',
+  'db': 'block_group.econ_and_empl.jobs_hipay_5min'},
+ 'block_group.real_estate.app_2y_bd_shap': {'nice': 'hpa last 2 years',
+  'db': 'block_group.real_estate.app_2y'},
+ 'block_group.real_estate.value_per_sqft_near_bd_shap': {'nice': 'home value per sq. ft nearby',
+  'db': 'block_group.real_estate.value_per_sqft_near'},
+ 'num_multi_op_bd_shap': {'nice': 'number of multi-operators nearby',
+  'db': 'num_multi_op'},
+ 'nrsf_median_bd_shap': {'nice': 'avg. nrsf nearby', 'db': 'nrsf_median'}}
