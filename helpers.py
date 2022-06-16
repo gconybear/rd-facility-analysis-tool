@@ -3,36 +3,39 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 
 
-def plot_demand(z, demand): 
-    row = demand.loc[z, :]   
-    
-    city, state = tuple(row['zip_name'].split(', ')) 
-    
-    date_list = row['datetime'][::-1] 
-    
-    # want to show last obs in plot
-    max_idx = len(date_list)
-    
-    fig, ax = plt.subplots(figsize=(9,4)) 
-    sns.lineplot(date_list, row['demand_score'], ls='-', label='demand', ax=ax)  
-    sns.lineplot(date_list, row['supply_score'], ls=':', label='supply', ax=ax) 
-    ax.set_title(f"Housing Demand in {city.title()}, {state.upper()} – {z}") 
+def plot_demand(z, demand):  
+    try:
+        row = demand.loc[z, :]   
+
+        city, state = tuple(row['zip_name'].split(', ')) 
+
+        date_list = row['datetime'][::-1] 
+
+        # want to show last obs in plot
+        max_idx = len(date_list)
+
+        fig, ax = plt.subplots(figsize=(9,4)) 
+        sns.lineplot(date_list, row['demand_score'], ls='-', label='demand', ax=ax)  
+        sns.lineplot(date_list, row['supply_score'], ls=':', label='supply', ax=ax) 
+        ax.set_title(f"Housing Demand in {city.title()}, {state.upper()} – {z}") 
 
 
-    ax.grid(True, 'major', 'both', ls='--', lw=.5, c='k', alpha=.3)
-    
-    for i,tick in enumerate(ax.xaxis.get_ticklabels()): 
-        if i == (max_idx-1): 
-            tick.set_visible(True)
-        elif i % 11 == 0:   
-            if (max_idx - i) > 7:
-                tick.set_visible(True) 
+        ax.grid(True, 'major', 'both', ls='--', lw=.5, c='k', alpha=.3)
+
+        for i,tick in enumerate(ax.xaxis.get_ticklabels()): 
+            if i == (max_idx-1): 
+                tick.set_visible(True)
+            elif i % 11 == 0:   
+                if (max_idx - i) > 7:
+                    tick.set_visible(True) 
+                else: 
+                    tick.set_visible(False) 
             else: 
                 tick.set_visible(False) 
-        else: 
-            tick.set_visible(False) 
-    
-    return fig
+
+        return fig 
+    except: 
+        return None
 
 tax_display_cols = ['TaxAmount', 'YoYChangeinTaxAmount',
        'ValueHistoryYear', 'AssessedLandValue', 'AssessedImprovementValue',

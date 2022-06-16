@@ -321,8 +321,11 @@ if search_button:
             
             zip_code = int(gen_row['ZipCode'].values[0]) 
             
-            fig = helpers.plot_demand(zip_code, realtor) 
-            st.pyplot(fig)
+            fig = helpers.plot_demand(zip_code, realtor)  
+            if fig is not None:
+                st.pyplot(fig) 
+            else: 
+                st.write("No housing demand data available for this zip code")
             
             blank() 
             
