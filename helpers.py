@@ -3,6 +3,82 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 
 
+def create_shapley_table(coeff_df, shap_row, test_row, col_dict, model='rev'): 
+    """
+    creates pandas html formatted / styled table 
+    
+    params 
+    ---- 
+    
+    shap_row : indexed row from shapley val df 
+    test_row : indexed row from training dataset 
+    col_dict : col name dict key:{'nice':val} 
+    model : either 'rev' or 'bd'
+    """ 
+    
+    cdf = coeff_df.copy() 
+    
+    shap_row_dict = dict(shap_row.reset_index().values) 
+    test_row_dict = dict(test_row.T.reset_index().values)
+    
+    cdf['shapley_value'] = (cdf['variable'].apply(lambda x: shap_row_dict.get(f"{x}_{model}_shap"))) * 100 
+    print(cdf['variable'])
+    cdf['prediction_effect'] = cdf['variable'].apply(lambda x: 'down' if 
+                                                               shap_row_dict.get(f"{x}_{model}_shap") < 0 else 'up')
+    cdf['value'] = cdf['variable'].apply(lambda x: test_row_dict.get(x))
+    cdf['z-score'] = cdf['variable'].apply(lambda x: test_row_dict.get(f"{x}_zscore")) # f"{x}_zscore" 
+    cdf['percentile'] = (cdf['variable'].apply(lambda x: test_row_dict.get(f"{x}_percentile")) * 100 ).round()
+    cdf['variable'] = cdf['variable'].apply(lambda x: col_dict[f"{x}_{model}_shap"]['nice'])
+
+    cdf = cdf.sort_values('shapley_value', key=lambda x: abs(x), ascending=False).reset_index(drop=True)
+    
+    POS_COLOR = '#86f564' 
+    NEG_COLOR = '#f52c54' 
+    
+    if model == 'bd': 
+        POS_COLOR = NEG_COLOR
+        NEG_COLOR = POS_COLOR
+
+    def color_recommend(value):
+        if value == 'down':
+            color = NEG_COLOR
+        elif value == 'up':
+            color = POS_COLOR
+        else:
+            return
+        return f'background-color: {color}'  
+
+    def shap_color_highlight(value):
+        if value < 0:
+            color = NEG_COLOR
+        elif value > 0:
+            color = POS_COLOR
+        else:
+            color = 'black'
+        return 'color: %s' % color
+
+
+
+    table = (
+        cdf 
+        .style
+        .format(
+            formatter={  
+                    'coefficient': '{:.5f}',
+                    'shapley_value': '{:.2f}',
+                    'value': '{:.2f}', 
+                    'z-score': '{:.2f}',  
+                    'percentile': '{:.0f}'
+                      }
+        )
+        .applymap(shap_color_highlight, subset=['shapley_value'])
+        .applymap(color_recommend, subset=['prediction_effect']) 
+
+    ) 
+
+    return table
+
+
 def plot_demand(z, demand):  
     try:
         row = demand.loc[z, :]   

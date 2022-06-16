@@ -58,7 +58,10 @@ def grab(MASTER_ACCESS_KEY, MASTER_SECRET):
     realtor = json.loads(s3.get_object(Bucket='acq-data-warehouse', 
                   Key=f'data_lake/other/realtor_demand.json')['Body'].read().decode('utf-8')) 
     
-    realtor = pd.DataFrame(realtor).set_index('postal_code')
+    realtor = pd.DataFrame(realtor).set_index('postal_code') 
+    
+    rev_coeffs = s3.get_object(Bucket='acq-data-warehouse', Key=f'data_lake/predictions/revenue_model_coefficients.csv')['Body'].read().decode('utf-8')   
+    rev_coeffs = pd.read_csv(StringIO(rev_coeffs)).drop('Unnamed: 0', axis=1)
     
     
     # comp_dict = pickle.loads(s3.get_object(Bucket='acq-data-warehouse', Key='data_lake/other/comps_comps.pkl')['Body'].read()) 
@@ -77,6 +80,7 @@ def grab(MASTER_ACCESS_KEY, MASTER_SECRET):
         'bd_test': bd_test,  
         'tax': tax,  
         'realtor': realtor, 
+        'rev_coeffs': rev_coeffs, 
         'comp_full': None
     }
     

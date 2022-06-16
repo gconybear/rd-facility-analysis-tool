@@ -43,7 +43,8 @@ bd_shap = dat['bd_shap']
 rev_test = dat['rev_test'] 
 bd_test = dat['bd_test'] 
 tax = dat['tax'] 
-realtor = dat['realtor']
+realtor = dat['realtor'] 
+rev_coeffs = dat['rev_coeffs']
 #comp_full = dat['comp_full']
 
 everthing_working = True 
@@ -226,7 +227,12 @@ if search_button:
                     val, z, p = helpers.compare_feature(f_feature, rev_test_row) 
                     #st.write(f"{f_feature} | {val} | {z} | {p}") 
                     
-                    st.markdown(f"$\Rightarrow$ **{helpers.rev_model_col_dict[f]['nice']}** has a value of **{val}**, a z-score of **{z}**, and in the **{p}{helpers.suffix(p)}** percentile")
+                    st.markdown(f"$\Rightarrow$ **{helpers.rev_model_col_dict[f]['nice']}** has a value of **{val}**, a z-score of **{z}**, and in the **{p}{helpers.suffix(p)}** percentile") 
+                                
+                shap_pretty_table = helpers.create_shapley_table(rev_coeffs, shap_row=rev_shap_row, 
+                     test_row=rev_test_row, col_dict=helpers.rev_model_col_dict)
+                
+                st.table(shap_pretty_table)
 
         with st.expander("Bad Debt"): 
             blank() 
@@ -466,8 +472,12 @@ if search_button:
             
             st.write('')  
             
-            tax_table = helpers.get_tax_row(closest_store.get('StoreID'), tax) 
-            st.table(tax_table.style.set_precision(2))
+            tax_table = helpers.get_tax_row(closest_store.get('StoreID'), tax)   
+            print(tax_table.head())
+            try:
+                st.table(tax_table.style.set_precision(2)) 
+            except: 
+                st.write(tax_table.astype(str)) 
             
         
         blank()
