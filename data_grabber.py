@@ -50,7 +50,15 @@ def grab(MASTER_ACCESS_KEY, MASTER_SECRET):
     rev_test = pd.read_csv(StringIO(rev_test)) 
     
     bd_test = s3.get_object(Bucket='acq-data-warehouse', Key=f'data_lake/predictions/shapley/bad_debt/bad_debt_training.csv')['Body'].read().decode('utf-8')   
-    bd_test = pd.read_csv(StringIO(bd_test))
+    bd_test = pd.read_csv(StringIO(bd_test)) 
+    
+    tax = s3.get_object(Bucket='acq-data-warehouse', Key=f'data_lake/other/tax_info.csv')['Body'].read().decode('utf-8')   
+    tax = pd.read_csv(StringIO(tax)) 
+    
+    realtor = json.loads(s3.get_object(Bucket='acq-data-warehouse', 
+                  Key=f'data_lake/other/realtor_demand.json')['Body'].read().decode('utf-8')) 
+    
+    realtor = pd.DataFrame(realtor).set_index('postal_code')
     
     
     # comp_dict = pickle.loads(s3.get_object(Bucket='acq-data-warehouse', Key='data_lake/other/comps_comps.pkl')['Body'].read()) 
@@ -66,7 +74,9 @@ def grab(MASTER_ACCESS_KEY, MASTER_SECRET):
         'rev_shap': rev_shap,  
         'bd_shap': bd_shap,  
         'rev_test': rev_test, 
-        'bd_test': bd_test, 
+        'bd_test': bd_test,  
+        'tax': tax,  
+        'realtor': realtor, 
         'comp_full': None
     }
     

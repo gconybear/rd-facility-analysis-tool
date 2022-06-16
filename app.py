@@ -41,7 +41,9 @@ local_rent = dat['local_rent']
 rev_shap = dat['rev_shap'] 
 bd_shap = dat['bd_shap'] 
 rev_test = dat['rev_test'] 
-bd_test = dat['bd_test']
+bd_test = dat['bd_test'] 
+tax = dat['tax'] 
+realtor = dat['realtor']
 #comp_full = dat['comp_full']
 
 st.header("Facility Analysis Tool") 
@@ -78,7 +80,8 @@ if search_button:
     crow = clusters[clusters['full_fips'] == closest_store['full_fips']].drop(['full_fips', 'Unnamed: 0'], axis=1).reset_index(drop=True).T.rename(columns={0:'values'}) 
         
     # general 
-    gen_row = gen[gen['StoreID'] == closest_store.get('StoreID')]   
+    gen_row = gen[gen['StoreID'] == closest_store.get('StoreID')]  
+    
         
     # predictions 
     preds_row = preds[preds['store'] == closest_store.get('StoreID')] 
@@ -314,7 +317,12 @@ if search_button:
              
             st.markdown("<u>Housing Demand & Supply</u>", unsafe_allow_html=True) 
             st.caption("Source: realtor.com") 
-            st.caption("Geography level: Zip Code")
+            st.caption("Geography level: Zip Code") 
+            
+            zip_code = int(gen_row['ZipCode'].values[0]) 
+            
+            fig = helpers.plot_demand(zip_code, realtor) 
+            st.pyplot(fig)
             
             blank() 
             
@@ -444,7 +452,10 @@ if search_button:
          
         with st.expander("Taxes & Assessments"): 
             
-            st.write('') 
+            st.write('')  
+            
+            tax_table = helpers.get_tax_row(closest_store.get('StoreID'), tax) 
+            st.table(tax_table.style.set_precision(2))
             
         
         blank()

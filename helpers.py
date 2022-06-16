@@ -1,4 +1,52 @@
-import streamlit as st 
+import streamlit as st  
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+
+def plot_demand(z, demand): 
+    row = demand.loc[z, :]   
+    
+    city, state = tuple(row['zip_name'].split(', ')) 
+    
+    date_list = row['datetime'][::-1] 
+    
+    # want to show last obs in plot
+    max_idx = len(date_list)
+    
+    fig, ax = plt.subplots(figsize=(9,4)) 
+    sns.lineplot(date_list, row['demand_score'], ls='-', label='demand', ax=ax)  
+    sns.lineplot(date_list, row['supply_score'], ls=':', label='supply', ax=ax) 
+    ax.set_title(f"Housing Demand in {city.title()}, {state.upper()} – {z}") 
+
+
+    ax.grid(True, 'major', 'both', ls='--', lw=.5, c='k', alpha=.3)
+    
+    for i,tick in enumerate(ax.xaxis.get_ticklabels()): 
+        if i == (max_idx-1): 
+            tick.set_visible(True)
+        elif i % 11 == 0:   
+            if (max_idx - i) > 7:
+                tick.set_visible(True) 
+            else: 
+                tick.set_visible(False) 
+        else: 
+            tick.set_visible(False) 
+    
+    return fig
+
+tax_display_cols = ['TaxAmount', 'YoYChangeinTaxAmount',
+       'ValueHistoryYear', 'AssessedLandValue', 'AssessedImprovementValue',
+       'TotalAssessedValue', 'AppliedTaxRate', 'LandMarketValue',
+       'ImprovementsMarketValue', 'TotalMarketValue']
+
+def get_tax_row(sid, tax):  
+    
+    row = tax[tax['StoreID'] == sid][tax_display_cols].T
+    
+    new_cols = [str(int(x)) for x in row.loc['ValueHistoryYear'].values] 
+    row.columns = new_cols 
+    
+    return row.drop('ValueHistoryYear')
 
 def compare_feature(f, row): 
     
