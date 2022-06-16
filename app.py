@@ -25,7 +25,7 @@ MASTER_ACCESS_KEY = st.secrets['MASTER_ACCESS_KEY']
 MASTER_SECRET = st.secrets['MASTER_SECRET']
 
 
-@st.cache(show_spinner=False)
+@st.cache(show_spinner=False, allow_output_mutation=True)
 def grab_data():  
     # print('function run')
     return data_grabber.grab(MASTER_ACCESS_KEY, MASTER_SECRET) 
@@ -46,6 +46,8 @@ tax = dat['tax']
 realtor = dat['realtor']
 #comp_full = dat['comp_full']
 
+everthing_working = True 
+
 st.header("Facility Analysis Tool") 
 blank()
 with st.form(key='form'): 
@@ -64,33 +66,40 @@ if search_button:
     
     
     if qtype == 'address': 
-        coords = extract_lat_long_via_address(query) 
-        coords = tuple(coords.values())  
+        coords = extract_lat_long_via_address(query)  
+        if coords is None: 
+            st.error("Unable to geocode address – **please input lat, long coordinates instead**") 
+            everthing_working = False
+        else:
+            coords = tuple(coords.values())  
 
     else: 
         coords = tuple([float(x) for x in query.replace(' ','').split(',')])
+    
+    if everthing_working: 
+        lat, long = coords 
+
+        closest_store = geomapping.get_closest_store(lat, long, geo) 
+
+        # --- index rows --- 
+
+        # cluster
+        crow = clusters[clusters['full_fips'] == closest_store['full_fips']].drop(['full_fips', 'Unnamed: 0'], axis=1).reset_index(drop=True).T.rename(columns={0:'values'}) 
+
+        # general 
+        gen_row = gen[gen['StoreID'] == closest_store.get('StoreID')]   
         
-    lat, long = coords 
+        if gen_row.empty: 
+            everthing_working = False
+
+        # predictions 
+        preds_row = preds[preds['store'] == closest_store.get('StoreID')] 
+
+        # gdp
+
+        gdp_row = gdp[gdp['county_fips'] == closest_store.get('county_fips')] 
     
-    closest_store = geomapping.get_closest_store(lat, long, geo) 
-    
-    # --- index rows --- 
-    
-    # cluster
-    crow = clusters[clusters['full_fips'] == closest_store['full_fips']].drop(['full_fips', 'Unnamed: 0'], axis=1).reset_index(drop=True).T.rename(columns={0:'values'}) 
-        
-    # general 
-    gen_row = gen[gen['StoreID'] == closest_store.get('StoreID')]  
-    
-        
-    # predictions 
-    preds_row = preds[preds['store'] == closest_store.get('StoreID')] 
-        
-    # gdp
-    
-    gdp_row = gdp[gdp['county_fips'] == closest_store.get('county_fips')] 
-    
-    if not gen_row.empty: 
+    if everthing_working: 
         st.success("Store found!") 
         blank()
         
