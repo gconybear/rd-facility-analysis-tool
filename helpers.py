@@ -30,14 +30,15 @@ def create_shapley_table(coeff_df, shap_row, test_row, col_dict, model='rev'):
     cdf['percentile'] = (cdf['variable'].apply(lambda x: test_row_dict.get(f"{x}_percentile")) * 100 ).round()
     cdf['variable'] = cdf['variable'].apply(lambda x: col_dict[f"{x}_{model}_shap"]['nice'])
 
-    cdf = cdf.sort_values('shapley_value', key=lambda x: abs(x), ascending=False).reset_index(drop=True)
+    cdf = cdf.sort_values('shapley_value', key=lambda x: abs(x), ascending=False).reset_index(drop=True) 
+    cdf = cdf[['variable', 'value', 'z-score', 'percentile', 'prediction_effect', 'shapley_value', 'coefficient']]
     
     POS_COLOR = '#86f564' 
     NEG_COLOR = '#f52c54' 
     
     if model == 'bd': 
-        POS_COLOR = NEG_COLOR
-        NEG_COLOR = POS_COLOR
+        POS_COLOR = '#f52c54'
+        NEG_COLOR = '#86f564'
 
     def color_recommend(value):
         if value == 'down':

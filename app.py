@@ -44,7 +44,8 @@ rev_test = dat['rev_test']
 bd_test = dat['bd_test'] 
 tax = dat['tax'] 
 realtor = dat['realtor'] 
-rev_coeffs = dat['rev_coeffs']
+rev_coeffs = dat['rev_coeffs'] 
+bd_coeffs = dat['bd_coeffs']
 #comp_full = dat['comp_full']
 
 everthing_working = True 
@@ -141,13 +142,24 @@ if search_button:
         
         st.write("**Facility Info**")  
         
-        with st.expander("Info"):
+        with st.expander("General"):
         
             st.markdown(f"$\Rightarrow$ Name: **{sname}**", unsafe_allow_html=True)
             st.markdown(f"$\Rightarrow$ Owner: **{owner}**", unsafe_allow_html=True) 
             st.markdown(f"$\Rightarrow$ Company Type: **{company_type}**", unsafe_allow_html=True)
             st.markdown(f"$\Rightarrow$ Total Sq. Footage: **{comma_print(total_sf)}**", unsafe_allow_html=True)
-            st.markdown(f"$\Rightarrow$ Rentable Sq. Footage: **{comma_print(nrsf)}**", unsafe_allow_html=True)
+            st.markdown(f"$\Rightarrow$ Rentable Sq. Footage: **{comma_print(nrsf)}**", unsafe_allow_html=True) 
+            
+        with st.expander("Taxes & Assessments"): 
+
+            st.write('')  
+
+            tax_table = helpers.get_tax_row(closest_store.get('StoreID'), tax)   
+            print(tax_table.head())
+            try:
+                st.table(tax_table.style.set_precision(2)) 
+            except: 
+                st.write(tax_table.astype(str)) 
 
         
         blank()
@@ -185,8 +197,10 @@ if search_button:
                 
                 blank()  
                 
-                st.markdown("<u>Model Intepretation</u>", unsafe_allow_html=True) 
+                st.markdown("<u>Model Intepretation</u>", unsafe_allow_html=True)  
                 
+                st.write('*Variable Effects on Prediction*')
+
                 rev_shap_row = (
                     rev_shap[rev_shap['store'] == closest_store.get('StoreID')]
                     .drop(['store', 'full_fips', 'Unnamed: 0'], axis=1)
@@ -199,40 +213,40 @@ if search_button:
                 ax.barh(y=xlabels, 
                        width=rev_shap_row.values, alpha=.3)  
 
-                ax.set_xlabel('Effect on Prediction') 
+                ax.set_xlabel('Effect on Revenue Prediction') 
                 ax.grid(True, 'major', 'x', ls='--', lw=.5, c='k', alpha=.3) 
                 
                 st.pyplot(fig) 
                 
-                N = 5
-                influential_features = rev_shap_row.sort_values(key=lambda x: abs(x), ascending=False)[:N]
-                fnames, fshaps = influential_features.index.tolist(), influential_features.values.tolist()  
-                
-                blank() 
-                
-                shap_string = '\n <br>'.join([f"$\Rightarrow$ **{helpers.rev_model_col_dict[f]['nice']}** drove the prediction **{'down' if v < 0 else 'up'}** <br>" for f,v in zip(fnames, fshaps)]) 
-                
-                st.write('*Directional Effects*')
-                st.markdown(shap_string, unsafe_allow_html=True) 
+#                N = 5
+#                influential_features = rev_shap_row.sort_values(key=lambda x: abs(x), ascending=False)[:N]
+#                fnames, fshaps = influential_features.index.tolist(), influential_features.values.tolist()  
+#                
+#                blank() 
+#                
+#                shap_string = '\n <br>'.join([f"$\Rightarrow$ **{helpers.rev_model_col_dict[f]['nice']}** drove the prediction **{'down' if v < 0 else 'up'}** <br>" for f,v in zip(fnames, fshaps)]) 
+#                
+#                st.write('*Directional Effects*')
+#                st.markdown(shap_string, unsafe_allow_html=True) 
                 
                 blank()  
-                blank() 
                 
-                st.write('*Variable Interpretation*')
+                st.write('*Variable Interpretation Table*')
+                blank()
                 
                 rev_test_row = rev_test[rev_test['store'] == closest_store.get('StoreID')] 
                 
-                for f in fnames:  
-                    f_feature = f.replace('_rev_shap', '')
-                    val, z, p = helpers.compare_feature(f_feature, rev_test_row) 
-                    #st.write(f"{f_feature} | {val} | {z} | {p}") 
-                    
-                    st.markdown(f"$\Rightarrow$ **{helpers.rev_model_col_dict[f]['nice']}** has a value of **{val}**, a z-score of **{z}**, and in the **{p}{helpers.suffix(p)}** percentile") 
+#                for f in fnames:  
+#                    f_feature = f.replace('_rev_shap', '')
+#                    val, z, p = helpers.compare_feature(f_feature, rev_test_row) 
+#                    #st.write(f"{f_feature} | {val} | {z} | {p}") 
+#                    
+#                    st.markdown(f"$\Rightarrow$ **{helpers.rev_model_col_dict[f]['nice']}** has a value of **{val}**, a z-score of **{z}**, and in the **{p}{helpers.suffix(p)}** percentile") 
                                 
                 shap_pretty_table = helpers.create_shapley_table(rev_coeffs, shap_row=rev_shap_row, 
                      test_row=rev_test_row, col_dict=helpers.rev_model_col_dict)
                 
-                st.table(shap_pretty_table)
+                st.dataframe(shap_pretty_table)
 
         with st.expander("Bad Debt"): 
             blank() 
@@ -264,7 +278,10 @@ if search_button:
                 
                 blank()  
                 
-                st.markdown("<u>Model Intepretation</u>", unsafe_allow_html=True) 
+                st.markdown("<u>Model Intepretation</u>", unsafe_allow_html=True)  
+                
+                st.write('*Variable Interpretation*')
+
                 
                 bd_shap_row = (
                     bd_shap[bd_shap['store'] == closest_store.get('StoreID')]
@@ -279,36 +296,42 @@ if search_button:
                 ax.barh(y=xlabels, 
                        width=bd_shap_row.values, alpha=.3)  
 
-                ax.set_xlabel('Effect on Prediction') 
+                ax.set_xlabel('Effect on Bad Debt Prediction') 
                 ax.grid(True, 'major', 'x', ls='--', lw=.5, c='k', alpha=.3) 
                 
                 st.pyplot(fig) 
                 
-                N = 5
-                influential_features = bd_shap_row.sort_values(key=lambda x: abs(x), ascending=False)[:N]
-                fnames, fshaps = influential_features.index.tolist(), influential_features.values.tolist()  
-                
-                blank() 
-                
-                shap_string = '\n <br>'.join([f"$\Rightarrow$ **{helpers.bd_model_col_dict[f]['nice']}** drove the prediction **{'down' if v < 0 else 'up'}** <br>" for f,v in zip(fnames, fshaps)]) 
-                
-                st.write('*Directional Effects*')
-                st.markdown(shap_string, unsafe_allow_html=True)
-                
-                blank() 
+#                N = 5
+#                influential_features = bd_shap_row.sort_values(key=lambda x: abs(x), ascending=False)[:N]
+#                fnames, fshaps = influential_features.index.tolist(), influential_features.values.tolist()  
+#                
+#                blank() 
+#                
+#                shap_string = '\n <br>'.join([f"$\Rightarrow$ **{helpers.bd_model_col_dict[f]['nice']}** drove the prediction **{'down' if v < 0 else 'up'}** <br>" for f,v in zip(fnames, fshaps)]) 
+#                
+#                st.write('*Directional Effects*')
+#                st.markdown(shap_string, unsafe_allow_html=True)
+#                
+#                blank() 
                 blank()  
                 
-                st.write('*Variable Interpretation*')
+                st.write('*Variable Interpretation Table*') 
+                blank()
                 
                 bd_test_row = bd_test[bd_test['store'] == closest_store.get('StoreID')] 
                  
                 
-                for f in fnames:  
-                    f_feature = f.replace('_bd_shap', '')
-                    val, z, p = helpers.compare_feature(f_feature, bd_test_row) 
-                    #st.write(f"{f_feature} | {val} | {z} | {p}") 
+#                for f in fnames:  
+#                    f_feature = f.replace('_bd_shap', '')
+#                    val, z, p = helpers.compare_feature(f_feature, bd_test_row) 
+#                    #st.write(f"{f_feature} | {val} | {z} | {p}") 
+#                    
+#                    st.markdown(f"$\Rightarrow$ **{helpers.bd_model_col_dict[f]['nice']}** has a value of **{val}**, a z-score of **{z}**, and in the **{p}{helpers.suffix(p)}** percentile") 
                     
-                    st.markdown(f"$\Rightarrow$ **{helpers.bd_model_col_dict[f]['nice']}** has a value of **{val}**, a z-score of **{z}**, and in the **{p}{helpers.suffix(p)}** percentile")
+                shap_pretty_table = helpers.create_shapley_table(bd_coeffs, shap_row=bd_shap_row, 
+                test_row=bd_test_row, col_dict=helpers.bd_model_col_dict, model='bd')
+                
+                st.dataframe(shap_pretty_table)
 
         with st.expander("Supply"): 
             st.write('')  
@@ -467,17 +490,7 @@ if search_button:
             "crime" 
             
             "income"
-         
-        with st.expander("Taxes & Assessments"): 
-            
-            st.write('')  
-            
-            tax_table = helpers.get_tax_row(closest_store.get('StoreID'), tax)   
-            print(tax_table.head())
-            try:
-                st.table(tax_table.style.set_precision(2)) 
-            except: 
-                st.write(tax_table.astype(str)) 
+        
             
         
         blank()
