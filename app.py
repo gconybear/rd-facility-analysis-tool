@@ -200,12 +200,18 @@ if search_button:
                 st.markdown("<u>Model Intepretation</u>", unsafe_allow_html=True)  
                 
                 st.write('*Variable Effects on Prediction*')
-
+                
+                rshap_row = rev_shap[rev_shap['store'] == closest_store.get('StoreID')]
+                
+                if rshap_row.shape[0] > 1: 
+                    rshap_row = rshap_row.reset_index(drop=True).drop(1)
+                 
+                
                 rev_shap_row = (
-                    rev_shap[rev_shap['store'] == closest_store.get('StoreID')]
+                    rshap_row
                     .drop(['store', 'full_fips', 'Unnamed: 0'], axis=1)
                     .squeeze().sort_values(key=lambda x: abs(x), ascending=True)
-                ) 
+                )                 
                 
                 fig, ax = plt.subplots(figsize=(6,3)) 
                 xlabels = [helpers.rev_model_col_dict[x]['nice'] for x in rev_shap_row.index.tolist()] 
@@ -281,10 +287,14 @@ if search_button:
                 st.markdown("<u>Model Intepretation</u>", unsafe_allow_html=True)  
                 
                 st.write('*Variable Interpretation*')
-
+                
+                bd_row = bd_shap[bd_shap['store'] == closest_store.get('StoreID')]
+                
+                if bd_row.shape[0] > 1: 
+                    bd_row = bd_row.reset_index(drop=True).drop(1)
                 
                 bd_shap_row = (
-                    bd_shap[bd_shap['store'] == closest_store.get('StoreID')]
+                    bd_row
                     .drop(['store', 'full_fips', 'Unnamed: 0'], axis=1)
                     .squeeze().sort_values(key=lambda x: abs(x), ascending=True)
                 ) 
