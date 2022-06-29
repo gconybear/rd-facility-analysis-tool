@@ -64,7 +64,10 @@ def grab(MASTER_ACCESS_KEY, MASTER_SECRET):
     rev_coeffs = pd.read_csv(StringIO(rev_coeffs)).drop('Unnamed: 0', axis=1) 
     
     bd_coeffs = s3.get_object(Bucket='acq-data-warehouse', Key=f'data_lake/predictions/bad_debt_model_coefficients.csv')['Body'].read().decode('utf-8')   
-    bd_coeffs = pd.read_csv(StringIO(bd_coeffs)).drop('Unnamed: 0', axis=1)
+    bd_coeffs = pd.read_csv(StringIO(bd_coeffs)).drop('Unnamed: 0', axis=1) 
+    
+    drivers = s3.get_object(Bucket='acq-data-warehouse', Key=f'data_lake/other/demographic_drivers_by_fips.csv')['Body'].read().decode('utf-8')   
+    drivers = pd.read_csv(StringIO(drivers)) 
     
     
     # comp_dict = pickle.loads(s3.get_object(Bucket='acq-data-warehouse', Key='data_lake/other/comps_comps.pkl')['Body'].read()) 
@@ -84,7 +87,8 @@ def grab(MASTER_ACCESS_KEY, MASTER_SECRET):
         'tax': tax,  
         'realtor': realtor, 
         'rev_coeffs': rev_coeffs, 
-        'bd_coeffs': bd_coeffs, 
+        'bd_coeffs': bd_coeffs,  
+        'drivers': drivers, 
         'comp_full': None
     }
     

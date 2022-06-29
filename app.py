@@ -45,7 +45,8 @@ bd_test = dat['bd_test']
 tax = dat['tax'] 
 realtor = dat['realtor'] 
 rev_coeffs = dat['rev_coeffs'] 
-bd_coeffs = dat['bd_coeffs']
+bd_coeffs = dat['bd_coeffs'] 
+drivers = dat['drivers']
 #comp_full = dat['comp_full']
 
 everthing_working = True 
@@ -102,15 +103,17 @@ if search_button:
         gdp_row = gdp[gdp['county_fips'] == closest_store.get('county_fips')] 
     
     if everthing_working: 
-        st.success("Store found!") 
-        blank()
-        
+        st.success("Store found!")  
+
         # general vals
         sname = gen_row.loc[:, 'StoreName'].values[0]
         total_sf = gen_row.loc[:, 'TotalSqft'].values[0]
         nrsf = gen_row.loc[:, 'RentableSqft'].values[0]
         owner = gen_row.loc[:, 'OwnerCompanyName'].values[0]  
         company_type = gen_row.loc[:, 'CompanyType'].values[0] 
+        
+        st.write(f"Address mapped to: **{sname}** (**{closest_store['distance']}** miles away)") 
+        blank()
         
         # prediction vals 
         rev_pred = preds_row.loc[:, 'mean_rev_fit'].values[0] 
@@ -126,9 +129,7 @@ if search_button:
 
         # --- outputs ---- 
 
-        st.write("**Cluster Predictions**") 
-
-        st.write(f"Address mapped to: **{sname}** (**{closest_store['distance']}** miles away)")   
+        st.write("**Cluster Predictions**")   
 
         for row in crow.index: 
             if row == 'cluster': 
@@ -211,7 +212,7 @@ if search_button:
                     rshap_row
                     .drop(['store', 'full_fips', 'Unnamed: 0'], axis=1)
                     .squeeze().sort_values(key=lambda x: abs(x), ascending=True)
-                )                 
+                )   
                 
                 fig, ax = plt.subplots(figsize=(6,3)) 
                 xlabels = [helpers.rev_model_col_dict[x]['nice'] for x in rev_shap_row.index.tolist()] 
@@ -286,7 +287,7 @@ if search_button:
                 
                 st.markdown("<u>Model Intepretation</u>", unsafe_allow_html=True)  
                 
-                st.write('*Variable Interpretation*')
+                st.write('*Variable Interpretation*') 
                 
                 bd_row = bd_shap[bd_shap['store'] == closest_store.get('StoreID')]
                 
@@ -343,18 +344,18 @@ if search_button:
                 
                 st.dataframe(shap_pretty_table)
 
-        with st.expander("Supply"): 
-            st.write('')  
-            
-            one_mi_over = nrsf_1_mile > 0
-            three_mi_over = nrsf_3_mile > 0 
-            five_mi_over = nrsf_5_mile > 0 
-            ten_mi_over = nrsf_10_mile > 0  
-            
-            st.write(f"""This location is **{'over' if one_mi_over else 'under'}** supplied 
-            in a 1 mile radius, **{'over' if three_mi_over else 'under'}** supplied in a 3 mile radius, 
-            **{'over' if five_mi_over else 'under'}** supplied in a 5 mile radius, and
-            **{'over' if ten_mi_over else 'under'}** supplied in a 10 mile radius""")
+#        with st.expander("Supply"): 
+#            st.write('')  
+#            
+#            one_mi_over = nrsf_1_mile > 0
+#            three_mi_over = nrsf_3_mile > 0 
+#            five_mi_over = nrsf_5_mile > 0 
+#            ten_mi_over = nrsf_10_mile > 0  
+#            
+#            st.write(f"""This location is **{'over' if one_mi_over else 'under'}** supplied 
+#            in a 1 mile radius, **{'over' if three_mi_over else 'under'}** supplied in a 3 mile radius, 
+#            **{'over' if five_mi_over else 'under'}** supplied in a 5 mile radius, and
+#            **{'over' if ten_mi_over else 'under'}** supplied in a 10 mile radius""")
 
 
         blank()  
@@ -461,47 +462,66 @@ if search_button:
             st.caption("Geography level: Neighborhood (Census Tract)")
             
             rent_row = local_rent[local_rent['full_fips'] == closest_store.get('full_fips')] 
-            #rent_row 
+            rent_row = rent_row.drop(['Unnamed: 0', 'full_fips'], axis=1).rename(columns={'neighborhood.real_estate.grrent_yield':'rent to property value ratio',
+                 'neighborhood.real_estate.rent': 'average rent',
+                 'neighborhood.real_estate.rent_br1': '1 bedroom rent',
+                 'neighborhood.real_estate.rent_br2': '2 bedroom rent',
+                 'neighborhood.real_estate.rent_br3': '3 bedroom rent',
+                 'neighborhood.real_estate.grrent_ch': 'change in rent price'}).T  
+            rent_row.columns = ['value']
             
-            _, col1, col2, col3, col4, _ = st.columns(6)
-            col1.metric("Median Rent", "$1.2K", "")
-            col2.metric("1 Bedroom Rent", "$1.5K", '')
-            col3.metric("2 Bedroom Rent", "$1.8K", '') 
-            col4.metric("3 Bedroom Rent", "$2.1K", '') 
+            st.dataframe(rent_row.style.set_precision(2))
             
+#            _, col1, col2, col3, col4, _ = st.columns(6)
+#            col1.metric("Median Rent", "$1.2K", "")
+#            col2.metric("1 Bedroom Rent", "$1.5K", '')
+#            col3.metric("2 Bedroom Rent", "$1.8K", '') 
+#            col4.metric("3 Bedroom Rent", "$2.1K", '') 
+#            
+#            blank() 
+#            
+#            _, _, col1, col2, _, _ = st.columns(6) 
+#            col1.metric("Gross Rent Yield", "4.25%") 
+#            col2.metric("Rent Change", "5.2%", '')
+#            
+#            
+#            blank() 
+#            
+#            st.markdown("<u>Neighborhood Rent Prices </u>", unsafe_allow_html=True) 
+#            
+#            
+#            'average rent' 
+#            
+#            'income to rent'
+#            
+#            'per capita income'  
+            
+            
+#        with st.expander("Search Demand"): 
+#            st.write('Coming soon')
+            
+        with st.expander("Key Demographics"):   
             blank() 
             
-            _, _, col1, col2, _, _ = st.columns(6) 
-            col1.metric("Gross Rent Yield", "4.25%") 
-            col2.metric("Rent Change", "5.2%", '')
+            st.markdown("*Principal drivers categorized on a scale of 0 (lowest) to 100 (highest)*") 
+            blank()
             
+            drivers_row = drivers[drivers['full_fips'] == closest_store.get('full_fips')] 
+            income_score = drivers_row['income_score'].values[0] 
+            home_val_score = drivers_row['home_val_score'].values[0] 
+            crime_score = drivers_row['crime_score'].values[0] 
             
-            blank() 
+            st.write(f"Income: **{income_score}** / 100") 
+            st.write(f"Cost of Living: **{home_val_score}** / 100")
+            st.write(f"Crime: **{crime_score}** / 100") 
             
-            st.markdown("<u>Neighborhood Rent Prices </u>", unsafe_allow_html=True) 
-            
-            
-            'average rent' 
-            
-            'income to rent'
-            
-            'per capita income'  
-            
-            
-        with st.expander("Search Demand"): 
-            st.write('Coming soon')
-            
-        with st.expander("Key Demographics"): 
-            
-            "display stats on main demographic drivers"
-            
-            "population"
-            
-            "crime" 
-            
-            "income"
-        
-            
+#            blank() 
+#            _, c1, c2, c3, _ = st.columns(5) 
+#            
+#            c1.metric('Income', income_score) 
+#            c2.metric('Cost of Living', home_val_score) 
+#            c3.metric('Crime', crime_score)             
+      
         
         blank()
 
