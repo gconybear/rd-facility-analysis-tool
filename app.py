@@ -9,7 +9,10 @@ import matplotlib.pyplot as plt
 import data_grabber  
 import geomapping
 from geocode import extract_lat_long_via_address 
-import helpers
+import helpers 
+
+st.set_page_config(layout='centered', page_icon='📈', page_title="Facility Analysis") 
+
 
 def blank(): return st.text('')  
 
