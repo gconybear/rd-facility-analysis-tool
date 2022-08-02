@@ -27,6 +27,10 @@ def comma_print(value, integer=False):
 MASTER_ACCESS_KEY = st.secrets['MASTER_ACCESS_KEY']
 MASTER_SECRET = st.secrets['MASTER_SECRET']
 
+@st.cache
+def convert_df(df):
+    # IMPORTANT: Cache the conversion to prevent computation on every rerun
+    return df.to_csv().encode('utf-8')
 
 @st.cache(show_spinner=False, allow_output_mutation=True)
 def grab_data():  
@@ -54,7 +58,7 @@ drivers = dat['drivers']
 
 everthing_working = True 
 
-st.header("Facility Analysis Tool") 
+st.header("Facility Analysis") 
 blank()
 with st.form(key='form'): 
     
@@ -83,7 +87,9 @@ if search_button:
         coords = tuple([float(x) for x in query.replace(' ','').split(',')])
     
     if everthing_working: 
-        lat, long = coords 
+        lat, long = coords  
+        
+        download_data = {}
 
         closest_store = geomapping.get_closest_store(lat, long, geo) 
 
@@ -113,7 +119,16 @@ if search_button:
         total_sf = gen_row.loc[:, 'TotalSqft'].values[0]
         nrsf = gen_row.loc[:, 'RentableSqft'].values[0]
         owner = gen_row.loc[:, 'OwnerCompanyName'].values[0]  
-        company_type = gen_row.loc[:, 'CompanyType'].values[0] 
+        company_type = gen_row.loc[:, 'CompanyType'].values[0]  
+        
+        download_data.update({
+            'store name': sname, 
+            'location': query, 
+            'total sq ft': total_sf, 
+            'rentable sq ft': nrsf, 
+            'owner': owner, 
+            'company type': company_type
+        })
         
         st.write(f"Address mapped to: **{sname}** (**{closest_store['distance']}** miles away)") 
         blank()
@@ -124,7 +139,12 @@ if search_button:
         nrsf_1_mile = preds_row.loc[:, 'nrsf_1mi_delta'].values[0]
         nrsf_3_mile = preds_row.loc[:, 'nrsf_3mi_delta'].values[0]
         nrsf_5_mile = preds_row.loc[:, 'nrsf_5mi_delta'].values[0] 
-        nrsf_10_mile = preds_row.loc[:, 'nrsf_10mi_delta'].values[0]
+        nrsf_10_mile = preds_row.loc[:, 'nrsf_10mi_delta'].values[0] 
+        
+        download_data.update({
+            'revenue_prediction': rev_pred, 
+            'bad_debt_prediction': bd_pred
+        })
     
 
     #    comp_data = comp_full[closest_store['StoreID']].get('comps')
@@ -140,7 +160,17 @@ if search_button:
             else: 
                 crow.loc[row, :] = crow.loc[row, :].apply(lambda x: str(x)) 
 
-        st.dataframe(crow) 
+        st.dataframe(crow)   
+        
+        download_data.update({
+            'cluster': crow.loc['cluster'].values[0], 
+            'cluster 1 prob': crow.loc['cluster_1_probability'].values[0], 
+            'cluster 2 prob': crow.loc['cluster_2_probability'].values[0], 
+            'cluster 3 prob': crow.loc['cluster_3_probability'].values[0], 
+            'cluster 4 prob': crow.loc['cluster_4_probability'].values[0], 
+            'cluster 5 prob': crow.loc['cluster_5_probability'].values[0]
+        })
+        
 
         blank()  
         
@@ -163,8 +193,17 @@ if search_button:
             try:
                 st.table(tax_table.style.set_precision(2)) 
             except: 
-                st.write(tax_table.astype(str)) 
-
+                st.write(tax_table.astype(str))  
+                
+            if not tax_table.empty: 
+                download_data.update({
+                    'last tax amount': tax_table.loc['TaxAmount'].values[0], 
+                    'assessed land value': tax_table.loc['AssessedLandValue'].values[0], 
+                    'assessed improvement value': tax_table.loc['AssessedImprovementValue'].values[0], 
+                    'total assessed value': tax_table.loc['TotalAssessedValue'].values[0], 
+                    'total market value': tax_table.loc['TotalMarketValue'].values[0]  
+                })
+        
         
         blank()
 
@@ -516,7 +555,13 @@ if search_button:
             
             st.write(f"Income: **{income_score}** / 100") 
             st.write(f"Cost of Living: **{home_val_score}** / 100")
-            st.write(f"Crime: **{crime_score}** / 100") 
+            st.write(f"Crime: **{crime_score}** / 100")  
+            
+            download_data.update({
+                'income score': income_score, 
+                'cost of living score': home_val_score, 
+                'crime score': crime_score
+            })
             
 #            blank() 
 #            _, c1, c2, c3, _ = st.columns(5) 
@@ -599,8 +644,19 @@ if search_button:
         blank() 
         blank()
         
-        st.download_button("Download full report", '')
+        #st.download_button("Download full report", '')  
+       
+        download_data = pd.DataFrame({k:[v] for k,v in download_data.items()}).T  
+        st.download_button(
+                label="Download full report",
+                data=convert_df(download_data),
+                file_name=f"{sname}_{query}.csv",
+                mime='text/csv'
+            ) 
         
+        
+#        st.write(download_data.shape)
+#        st.write(download_data)
     else: 
         st.warning("""
         We don't currently have data on this facility's neighborhood... 
