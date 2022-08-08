@@ -552,7 +552,7 @@ if search_button:
         with st.expander("Key Demographics"):   
             blank() 
             
-            st.markdown("*Principal drivers categorized on a scale of 0 (lowest) to 100 (highest)*") 
+            st.markdown("*Principal drivers categorized on a **nationwide** scale of 0 (lowest) to 100 (highest)*") 
             blank()
             
             drivers_row = drivers[drivers['full_fips'] == closest_store.get('full_fips')] 
