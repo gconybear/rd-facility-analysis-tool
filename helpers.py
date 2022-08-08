@@ -1,6 +1,7 @@
 import streamlit as st  
 import seaborn as sns
-import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt 
+import pandas as pd 
 
 
 def create_shapley_table(coeff_df, shap_row, test_row, col_dict, model='rev'): 
@@ -119,11 +120,27 @@ tax_display_cols = ['TaxAmount', 'YoYChangeinTaxAmount',
        'TotalAssessedValue', 'AppliedTaxRate', 'LandMarketValue',
        'ImprovementsMarketValue', 'TotalMarketValue']
 
+def create_cols(row): 
+    bad = -1
+    cols = []
+    for x in row: 
+        if pd.isnull(x): 
+            col = f"t{bad}" 
+            bad -= 1 
+        else: 
+            col = str(int(x)) 
+        
+        cols.append(col)
+    return cols
+
 def get_tax_row(sid, tax):  
     
     row = tax[tax['StoreID'] == sid][tax_display_cols].T
     
-    new_cols = [str(int(x)) for x in row.loc['ValueHistoryYear'].values] 
+    bad_cols = 1
+    # if not pd.isnull(x) else x 
+    #new_cols = [str(int(x)) for x in row.loc['ValueHistoryYear'].values]  
+    new_cols = create_cols(row.loc['ValueHistoryYear'].values)
     row.columns = new_cols 
     
     return row.drop('ValueHistoryYear')
