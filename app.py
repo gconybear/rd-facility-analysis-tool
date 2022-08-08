@@ -112,14 +112,16 @@ if search_button:
         gdp_row = gdp[gdp['county_fips'] == closest_store.get('county_fips')] 
     
     if everthing_working: 
-        st.success("Store found!")  
+#        st.success(f"Store found! \n\nAddress mapped to: **{sname}** (**{closest_store['distance']}** miles away)")  
 
         # general vals
         sname = gen_row.loc[:, 'StoreName'].values[0]
         total_sf = gen_row.loc[:, 'TotalSqft'].values[0]
         nrsf = gen_row.loc[:, 'RentableSqft'].values[0]
         owner = gen_row.loc[:, 'OwnerCompanyName'].values[0]  
-        company_type = gen_row.loc[:, 'CompanyType'].values[0]  
+        company_type = gen_row.loc[:, 'CompanyType'].values[0]   
+        
+        st.success(f"Address mapped to: **{sname}** (**{closest_store['distance']}** miles away)") 
         
         download_data.update({
             'store name': sname, 
@@ -130,8 +132,8 @@ if search_button:
             'company type': company_type
         })
         
-        st.write(f"Address mapped to: **{sname}** (**{closest_store['distance']}** miles away)") 
-        blank()
+#        st.write(f"Address mapped to: **{sname}** (**{closest_store['distance']}** miles away)") 
+        ##blank()
         
         # prediction vals 
         rev_pred = preds_row.loc[:, 'mean_rev_fit'].values[0] 
@@ -152,7 +154,7 @@ if search_button:
 
         # --- outputs ---- 
 
-        st.write("**Cluster Predictions**")   
+        #st.write("**Cluster Predictions**")   
 
         for row in crow.index: 
             if row == 'cluster': 
@@ -160,7 +162,7 @@ if search_button:
             else: 
                 crow.loc[row, :] = crow.loc[row, :].apply(lambda x: str(x)) 
 
-        st.dataframe(crow)   
+        #st.dataframe(crow)   
         
         download_data.update({
             'cluster': crow.loc['cluster'].values[0], 
@@ -399,7 +401,12 @@ if search_button:
 #            **{'over' if five_mi_over else 'under'}** supplied in a 5 mile radius, and
 #            **{'over' if ten_mi_over else 'under'}** supplied in a 10 mile radius""")
 
+        with st.expander("Clusters"):  
+            st.write("**Cluster Predictions**")   
 
+            st.dataframe(crow)   
+
+        
         blank()  
         
         st.write("**Market Analytics**")   
