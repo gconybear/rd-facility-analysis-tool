@@ -66,7 +66,14 @@ with st.form(key='form'):
     qtype = st.radio("Location type", ('address', 
                                        'coordinates'), help="coordinates should be in lat, long format") 
     
-    query = st.text_input("Location")
+    query = st.text_input("Location") 
+    
+    with st.expander("Climate Control Modifer"): 
+        
+        st.caption("*Use the options below to add climate control revenue adjustment*") 
+        cc_known = st.radio("Facility Climate Control Percentage", ['Known', 'Unknown'], index=1)
+        cc_pct = st.number_input('Climate Control Percentage', min_value=0., max_value=100., step=5.) 
+  
     
     blank()
     search_button = st.form_submit_button('search') 
@@ -109,7 +116,12 @@ if search_button:
 
         # gdp
 
-        gdp_row = gdp[gdp['county_fips'] == closest_store.get('county_fips')] 
+        gdp_row = gdp[gdp['county_fips'] == closest_store.get('county_fips')]  
+        
+        
+        # cc modifier 
+        
+        cc_known = cc_known == 'Known'
     
     if everthing_working: 
 #        st.success(f"Store found! \n\nAddress mapped to: **{sname}** (**{closest_store['distance']}** miles away)")  
@@ -143,8 +155,18 @@ if search_button:
         nrsf_5_mile = preds_row.loc[:, 'nrsf_5mi_delta'].values[0] 
         nrsf_10_mile = preds_row.loc[:, 'nrsf_10mi_delta'].values[0] 
         
+        # cc modifier 
+        
+        if cc_known: 
+            cc_modifier = np.e**(0.003593*(cc_pct - 14.82))  
+            base_rev = rev_pred 
+            modified_rev = base_rev * cc_modifier
+        else: 
+            cc_modifier = 1
+        
         download_data.update({
-            'revenue_prediction': rev_pred, 
+            'revenue_prediction': rev_pred * cc_modifier, 
+            'cc_modifier': cc_modifier, 
             'bad_debt_prediction': bd_pred
         })
     
@@ -214,6 +236,9 @@ if search_button:
         with st.expander("Revenue"):  
             blank() 
             
+            if cc_known: 
+                st.info(f"Climate control modifier of **{round(cc_modifier, 5)}** applied to base revenue prediction")
+            
             if not pd.isnull(rev_pred):  
                 
                 st.markdown("<u>Model Output</u>", unsafe_allow_html=True)  
@@ -228,9 +253,15 @@ if search_button:
                 num_bins = 100
                 n, bins, patches = ax.hist(preds['mean_rev_fit'], 
                                            num_bins, density=True, alpha=.2) 
-            
-                ax.axvline(rev_pred, ls='dashdot', c='r', 
-                           label=f'predicted rev / sq foot = ${round(rev_pred, 2)}') 
+                
+                if cc_known:  
+                    ax.axvline(base_rev, ls='dashdot', c='r', 
+                               label=f'base rev / sq foot = ${round(base_rev, 2)}')  
+                    ax.axvline(modified_rev, ls='dashdot', c='g', 
+                               label=f'cc-adjusted rev / sq foot = ${round(modified_rev, 2)}') 
+                else:
+                    ax.axvline(rev_pred, ls='dashdot', c='r', 
+                               label=f'predicted rev / sq foot = ${round(rev_pred, 2)}') 
 #                ax.axvline(POP_MEDIAN, ls='dashdot', c='#9ea832', 
 #                           label=f'population median = ${round(POP_MEDIAN, 2)}')
                 ax.set_xlim(4.85, 21)  
@@ -238,7 +269,22 @@ if search_button:
                 ax.tick_params(axis='both', which='both', labelsize=6,
                    bottom=False, top=False, labelbottom=True,
                    left=False, right=False, labelleft=True)
-                st.pyplot(fig) 
+                st.pyplot(fig)  
+                
+                if cc_known:
+                    st.markdown("*Climate Control Adjustment*")  
+                    
+                    cc_delta = modified_rev - base_rev 
+                    if cc_delta >= 0: 
+                        sign = '+' 
+                    else: 
+                        sign = '-'
+
+                    st.markdown(f""" 
+                    - base revenue prediction: **${round(base_rev, 2)}**/sf \n 
+                    - modified revenue prediction: **${round(modified_rev, 2)}**/sf\n 
+                    - climate control revenue effect: **{sign} ${round(abs(cc_delta), 2)}**/sf\n
+                    """)
                 
                 blank()  
                 
