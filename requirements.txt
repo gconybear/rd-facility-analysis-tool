@@ -7,4 +7,5 @@ requests==2.26.0
 streamlit==1.7.0
 branca==0.3.1
 scipy 
-seaborn
+seaborn 
+statsmodels==0.13.1
