@@ -4,7 +4,8 @@ import numpy as np
 import folium
 from folium import Marker
 from folium.plugins import MarkerCluster 
-import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt 
+import pickle 
 
 import data_grabber  
 import geomapping
@@ -34,10 +35,11 @@ def convert_df(df):
 
 @st.cache(show_spinner=False, allow_output_mutation=True)
 def grab_data():  
-    # print('function run')
-    return data_grabber.grab(MASTER_ACCESS_KEY, MASTER_SECRET) 
+    # print('function run') 
+    reg = pickle.load(open('cp-models/cp_ttm_rev_simple.pkl', 'rb'))
+    return data_grabber.grab(MASTER_ACCESS_KEY, MASTER_SECRET), reg
 
-dat = grab_data() 
+dat, reg = grab_data() 
 gen = dat['general'] 
 geo = dat['geo']
 clusters = dat['clusters']  
@@ -72,14 +74,52 @@ with st.form(key='form'):
         
         st.caption("*Use the options below to add climate control revenue adjustment*") 
         cc_known = st.radio("Facility Climate Control Percentage", ['Known', 'Unknown'], index=1)
-        cc_pct = st.number_input('Climate Control Percentage', min_value=0., max_value=100., step=5.) 
+        cc_pct = st.number_input('Climate Control Percentage', min_value=0., max_value=100., step=5.)  
+        
+    with st.expander("Contract Price Estimation"): 
+        
+        st.caption("*Input TTM Revenue to get an estimate of contract price*")  
+        help_str = """
+        checking this box will produce a **prediction interval** for a new inputted TMM Revenue 
+        
+        for more info on prediction intervals vs confidence intervals, see this: https://www.statology.org/confidence-interval-vs-prediction-interval/
+        """
+        predict_cp = st.radio('Predict Contract Price', ['Yes', 'No'], index=1, help=help_str) 
+        c1, c2 = st.columns(2)
+        ttm_rev = c1.number_input('TTM Revenue ($)', min_value=0, max_value=None, step=10000)  
+        alpha_level = c2.number_input('Confidence Level (%)', 
+                                      min_value=0., 
+                                      max_value=100., 
+                                      step=5., 
+                                      value=90., help="corresponds to the alpha level used for computing the prediction interval (e.g., 90% confidence level is a 0.1 alpha level)")
+        
   
     
     blank()
     search_button = st.form_submit_button('search') 
     
     
-if search_button: 
+if search_button:  
+    
+    # check to see if user asked for cp model 
+    est_contract_price = predict_cp == 'Yes' 
+    if est_contract_price:  
+        a = (100 - alpha_level) / 100 
+        low_cp, high_cp = helpers.predict_interval(reg, np.array([1., ttm_rev]), alpha=a)  
+        
+        mssg = f"""
+        
+        ***Contract Price Estimation***
+        
+        ------ 
+        
+        $\Rightarrow$ prediction interval: **\${int(low_cp):,}** to **\${int(high_cp):,}** 
+        
+        $\Rightarrow$ there is a **{round(alpha_level)}%** probability that true contract price falls in the above range
+        
+        """ 
+        st.info(mssg)
+        #st.info(f'contract price interval: **\${int(low_cp):,}** to **\${int(high_cp):,}**')
     
     
     if qtype == 'address': 

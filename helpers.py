@@ -3,6 +3,16 @@ import seaborn as sns
 import matplotlib.pyplot as plt 
 import pandas as pd 
 
+def predict(m, new): 
+    """
+    m: statsmodels model obj 
+    new: np array [1, x] --> x = ttm revenue 
+    """ 
+    
+    return tuple(m.get_prediction(new).conf_int(alpha=.05)[0]) 
+
+def predict_interval(m, new, alpha=.1): 
+    return tuple(m.get_prediction(new).summary_frame(alpha=alpha)[['obs_ci_lower', 'obs_ci_upper']].values[0])
 
 def create_shapley_table(coeff_df, shap_row, test_row, col_dict, model='rev'): 
     """
