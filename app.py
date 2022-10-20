@@ -105,7 +105,7 @@ if search_button:
     est_contract_price = predict_cp == 'Yes' 
     if est_contract_price:  
         a = (100 - alpha_level) / 100 
-        low_cp, high_cp = helpers.predict_interval(reg, np.array([1., ttm_rev]), alpha=a)  
+        low_cp, high_cp = helpers.predict_interval(reg, np.array([1., ttm_rev]), alpha=a, ci=True)  
         
         mssg = f"""
         
@@ -113,11 +113,10 @@ if search_button:
         
         ------ 
         
-        $\Rightarrow$ prediction interval: **\${int(low_cp):,}** to **\${int(high_cp):,}** 
-        
-        $\Rightarrow$ there is a **{round(alpha_level)}%** probability that true contract price falls in the above range
-        
-        """ 
+        $\Rightarrow$ **{round(alpha_level)}%** confidence interval: **\${int(low_cp):,}** to **\${int(high_cp):,}** 
+         
+        """  
+        # $\Rightarrow$ there is a **{round(alpha_level)}%** probability that true contract price falls in the above range
         st.info(mssg)
         #st.info(f'contract price interval: **\${int(low_cp):,}** to **\${int(high_cp):,}**')
     
