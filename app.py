@@ -576,18 +576,18 @@ if search_button:
                bottom=False, top=False, labelbottom=True,
                left=False, right=False, labelleft=True)
             st.pyplot(fig)
-
             
             gdp_percap = gdp_row['gdp_per_cap_20'].values[0] 
-            gdp_percentile = gdp_row['per_cap_percentile'].values[0] 
-            gdp_percentile = round(gdp_percentile*100) 
-#            GDP_AVG = 37.34
-#            pct_diff = round((1 - (GDP_AVG / gdp_percap)) * 100, 2) 
-#            delta = 'higher' if pct_diff > 0 else 'lower'  
+            gdp_percentile = gdp_row['per_cap_percentile'].values[0]  
+            if not pd.isnull(gdp_percentile):
+                gdp_percentile = round(gdp_percentile*100) 
+    #            GDP_AVG = 37.34
+    #            pct_diff = round((1 - (GDP_AVG / gdp_percap)) * 100, 2) 
+    #            delta = 'higher' if pct_diff > 0 else 'lower'  
 
-            st.write("*Per Capita*")
-            
-            st.write(f"GDP per capita in this county is $**{round(gdp_percap, 2)}**, which is in the **{gdp_percentile}**{helpers.suffix(gdp_percentile)} percentile nationally")
+                st.write("*Per Capita*")
+
+                st.write(f"GDP per capita in this county is $**{round(gdp_percap, 2)}**, which is in the **{gdp_percentile}**{helpers.suffix(gdp_percentile)} percentile nationally")
             
             blank() 
             
