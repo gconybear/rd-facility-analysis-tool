@@ -28,12 +28,12 @@ def comma_print(value, integer=False):
 MASTER_ACCESS_KEY = st.secrets['MASTER_ACCESS_KEY']
 MASTER_SECRET = st.secrets['MASTER_SECRET']
 
-@st.cache
+@st.cache_data
 def convert_df(df):
-    # IMPORTANT: Cache the conversion to prevent computation on every rerun
+    # IMPORTANT: cache_data the conversion to prevent computation on every rerun
     return df.to_csv().encode('utf-8')
 
-@st.cache(show_spinner=False, allow_output_mutation=True)
+@st.cache_data()
 def grab_data():  
     # print('function run') 
     reg = pickle.load(open('cp-models/cp_ttm_rev_simple.pkl', 'rb'))
